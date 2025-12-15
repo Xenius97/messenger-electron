@@ -46,8 +46,7 @@ jobs:
         
       - name: Push changes
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/Xenius97/messenger-electron.git
-          git push origin HEAD:master
+          git push https://${{ secrets.PAT_TOKEN }}@github.com/Xenius97/messenger-electron.git HEAD:master
 
       - name: Build Installer and Portable
         run: npm run build
