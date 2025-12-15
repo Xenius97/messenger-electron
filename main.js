@@ -101,8 +101,8 @@ function createWindow() {
     splash.loadFile('splash.html');
 
     mainWindow = new BrowserWindow({
-        width: 1600,
-        height: 900,
+        width: 1200,
+        height: 800,
         show: false,
         resizable: true,
         autoHideMenuBar: true,
