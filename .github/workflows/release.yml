@@ -37,15 +37,12 @@ jobs:
           $new_version = node -p "require('./package.json').version"
           echo "new_version=$new_version" >> $env:GITHUB_OUTPUT
 
-      - name: Commit version bump
+      - name: Commit and push version bump
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json
           git commit -m "Bump version to ${{ steps.bump_version.outputs.new_version }}"
-        
-      - name: Push changes
-        run: |
           git push https://${{ secrets.PAT_TOKEN }}@github.com/Xenius97/messenger-electron.git HEAD:master
 
       - name: Build Installer and Portable
