@@ -1,0 +1,42 @@
+{
+  "name": "messenger-electron",
+  "version": "1.0.0",
+  "main": "main.js",
+  "description": "Messenger Desktop",
+  "author": "Xenius",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:installer": "electron-builder --win nsis",
+    "build:portable": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.messenger.desktop",
+    "productName": "Messenger",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "build/**/*"
+    ],
+    "win": {
+      "icon": "build/app.ico"
+    },
+    "nsis": {
+      "artifactName": "Messenger-Setup-${version}.exe",
+      "oneClick": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "Messenger-Portable-${version}.exe"
+    }
+  }
+}
