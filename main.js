@@ -1,4 +1,5 @@
 const { app, BrowserWindow, Menu, shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 
 const APP_TITLE = 'Messenger Desktop';
@@ -253,5 +254,26 @@ function createWindows() {
     createMainWindow();
 }
 
-app.whenReady().then(createWindows);
+function setupAutoUpdater() {
+    setTimeout(() => {
+        autoUpdater.checkForUpdatesAndNotify();
+    }, 2000);
+    
+    autoUpdater.on('update-available', () => {
+        console.log('New update available!');
+    });
+
+    autoUpdater.on('update-downloaded', () => {
+        console.log('Update downloaded. Restart required.');
+    });
+
+    autoUpdater.on('error', (error) => {
+        console.error('Frissítési hiba:', error);
+    });
+}
+
+app.whenReady().then(() => {
+    createWindows();
+    setupAutoUpdater();
+});
 app.on('window-all-closed', () => app.quit());

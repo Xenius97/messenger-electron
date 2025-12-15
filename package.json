@@ -4,6 +4,10 @@
   "main": "main.js",
   "description": "Messenger Desktop",
   "author": "Xenius",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Xenius97/messenger-desktop"
+  },
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
@@ -37,6 +41,14 @@
     },
     "portable": {
       "artifactName": "Messenger-Portable-v${version}.exe"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Xenius97",
+      "repo": "messenger-desktop"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
   }
 }
