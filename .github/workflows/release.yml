@@ -2,12 +2,16 @@ name: Build and Release
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
   release:
     runs-on: windows-latest
     permissions:
       contents: write
+    if: contains(github.event.head_commit.message, 'build-release') || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
