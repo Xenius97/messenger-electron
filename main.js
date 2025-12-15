@@ -64,6 +64,14 @@ function createExternalWindow(url) {
 
     const wc = win.webContents;
 
+    wc.session.on('will-download', (event, item) => {
+        item.once('done', () => {
+            if (!win.isDestroyed()) {
+                win.close();
+            }
+        });
+    });
+
     wc.on('will-navigate', (e, target) => {
         if (isMessengerUrl(target)) {
             e.preventDefault();
