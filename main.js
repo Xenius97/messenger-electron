@@ -6,13 +6,20 @@ let splash;
 let loadingInterval = null;
 let dots = 0;
 
-if (process.env.PORTABLE_EXECUTABLE_DIR) {
-    const portableDataPath = path.join(
-        app.getPath('appData'),
-        'MessengerDesktopData'
-    );
+const dataFolderName = process.env.PORTABLE_EXECUTABLE_DIR ? 'MessengerDesktopData' : 'MessengerDesktop';
 
-    app.setPath('userData', portableDataPath);
+app.setPath(
+    'userData',
+    path.join(app.getPath('appData'), dataFolderName)
+);
+
+function isMessengerUrl(url) {
+    try {
+        const u = new URL(url);
+        return u.hostname.endsWith('messenger.com');
+    } catch {
+        return false;
+    }
 }
 
 function startLoadingAnimation() {
@@ -35,6 +42,29 @@ function stopLoadingAnimation() {
     mainWindow.setTitle('Messenger Desktop');
 }
 
+function createExternalWindow(url) {
+    const win = new BrowserWindow({
+        width: 1000,
+        height: 800,
+        autoHideMenuBar: true,
+        webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false
+        }
+    });
+
+    win.webContents.on('will-navigate', (event, targetUrl) => {
+        if (isMessengerUrl(targetUrl)) {
+            event.preventDefault();
+            win.close();
+            mainWindow.loadURL(targetUrl);
+            mainWindow.focus();
+        }
+    });
+
+    win.loadURL(url);
+}
+
 function createWindow() {
 
     splash = new BrowserWindow({
@@ -48,8 +78,8 @@ function createWindow() {
     splash.loadFile('splash.html');
 
     mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
+        width: 1600,
+        height: 900,
         show: false,
         resizable: true,
         autoHideMenuBar: true,
@@ -57,7 +87,8 @@ function createWindow() {
         icon: path.join(__dirname, 'build/app.ico'),
         webPreferences: {
             contextIsolation: true,
-            nodeIntegration: false
+            nodeIntegration: false,
+            partition: 'persist:messenger'
         }
     });
 
@@ -75,6 +106,22 @@ function createWindow() {
 
     wc.on('did-navigate-in-page', startLoadingAnimation);
     wc.on('did-frame-finish-load', stopLoadingAnimation);
+
+    wc.setWindowOpenHandler(({ url }) => {
+        if (isMessengerUrl(url)) {
+            return { action: 'allow' };
+        }
+
+        createExternalWindow(url);
+        return { action: 'deny' };
+    });
+
+    wc.on('will-navigate', (event, url) => {
+        if (!isMessengerUrl(url)) {
+            event.preventDefault();
+            createExternalWindow(url);
+        }
+    });
 
     mainWindow.loadURL('https://www.messenger.com');
 
