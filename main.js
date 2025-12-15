@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 
@@ -259,16 +259,32 @@ function setupAutoUpdater() {
         autoUpdater.checkForUpdatesAndNotify();
     }, 2000);
     
-    autoUpdater.on('update-available', () => {
-        console.log('New update available!');
+    autoUpdater.on('update-available', (info) => {
+        dialog.showMessageBox(mainWindow, {
+            type: 'info',
+            title: 'Update Available',
+            message: `A new version (${info.version}) is available!`,
+            detail: 'The update will be downloaded in the background.',
+            buttons: ['OK']
+        });
     });
 
-    autoUpdater.on('update-downloaded', () => {
-        console.log('Update downloaded. Restart required.');
+    autoUpdater.on('update-downloaded', (info) => {
+        dialog.showMessageBox(mainWindow, {
+            type: 'info',
+            title: 'Update Ready',
+            message: 'Update downloaded successfully!',
+            detail: 'The application will be updated when you close it.',
+            buttons: ['OK', 'Restart Now']
+        }).then((result) => {
+            if (result.response === 1) {
+                autoUpdater.quitAndInstall();
+            }
+        });
     });
 
     autoUpdater.on('error', (error) => {
-        console.error('Frissítési hiba:', error);
+        console.error('Update error:', error);
     });
 }
 
