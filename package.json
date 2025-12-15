@@ -1,5 +1,5 @@
 {
-  "name": "messenger-electron",
+  "name": "messenger-desktop",
   "version": "1.0.6",
   "main": "main.js",
   "description": "Messenger Desktop",
