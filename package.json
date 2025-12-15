@@ -22,10 +22,10 @@
     },
     "files": [
       "**/*",
-      "build/**/*"
+      "assets/**/*"
     ],
     "win": {
-      "icon": "build/app.ico"
+      "icon": "assets/app.ico"
     },
     "nsis": {
       "artifactName": "Messenger-Setup-v${version}.exe",

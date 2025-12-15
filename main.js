@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 
 let mainWindow;
@@ -54,7 +54,7 @@ function createExternalWindow(url) {
         height: 800,
         autoHideMenuBar: true,
         title: 'Messenger Desktop',
-        icon: path.join(__dirname, 'build/app.ico'),
+        icon: path.join(__dirname, 'assets/app.ico'),
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
@@ -113,7 +113,7 @@ function createWindow() {
         resizable: true,
         autoHideMenuBar: true,
         title: 'Messenger Desktop',
-        icon: path.join(__dirname, 'build/app.ico'),
+        icon: path.join(__dirname, 'assets/app.ico'),
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
@@ -122,6 +122,17 @@ function createWindow() {
     });
 
     const wc = mainWindow.webContents;
+
+    wc.on('context-menu', (e, params) => {
+        const menu = Menu.buildFromTemplate([
+            { role: 'copy' },
+            { role: 'paste' },
+            { role: 'selectAll' },
+            { type: 'separator' },
+            { role: 'reload' }
+        ]);
+        menu.popup();
+    });
 
     wc.on('did-start-loading', () => {
         startLoadingAnimation();
