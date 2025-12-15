@@ -47,6 +47,8 @@ jobs:
 
       - name: Build Installer and Portable
         run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
