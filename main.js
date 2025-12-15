@@ -292,4 +292,4 @@ app.whenReady().then(() => {
     createWindows();
     setupAutoUpdater();
 });
-app.on('window-all-closed', () => app.quit());
+app.on('window-all-closed', () => app.quit()); 
