@@ -1,0 +1,68 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Get current version
+        id: get_version
+        run: |
+          $version = node -p "require('./package.json').version"
+          echo "current_version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          npm version patch --no-git-tag-version
+          $new_version = node -p "require('./package.json').version"
+          echo "new_version=$new_version" >> $env:GITHUB_OUTPUT
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add package.json
+          git commit -m "Bump version to ${{ steps.bump_version.outputs.new_version }}"
+          git push
+
+      - name: Build Installer and Portable
+        run: npm run build
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}
+          name: Release v${{ steps.bump_version.outputs.new_version }}
+          body: |
+            ## Messenger Desktop v${{ steps.bump_version.outputs.new_version }}
+            
+            ### Downloads
+            - **Installer**: Messenger-Setup-v${{ steps.bump_version.outputs.new_version }}.exe
+            - **Portable**: Messenger-Portable-v${{ steps.bump_version.outputs.new_version }}.exe
+            
+            ### Changes
+            Automatic release build
+          files: |
+            dist/Messenger-Setup-v${{ steps.bump_version.outputs.new_version }}.exe
+            dist/Messenger-Portable-v${{ steps.bump_version.outputs.new_version }}.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
