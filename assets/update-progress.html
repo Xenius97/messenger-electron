@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 30px;
+            background: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        h2 {
+            margin: 0 0 25px 0;
+            color: #00aaff;
+            font-size: 18px;
+            font-weight: normal;
+        }
+        .progress-container {
+            width: 100%;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        .progress-bar {
+            height: 30px;
+            background: linear-gradient(90deg, #00aaff, #0088cc);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .status {
+            color: #888;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .buttons {
+            margin-top: 20px;
+            display: none;
+            gap: 10px;
+        }
+        .buttons.show {
+            display: flex;
+        }
+        button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #00aaff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0099ee;
+        }
+        .btn-secondary {
+            background: #333;
+            color: #00aaff;
+            border: 1px solid #00aaff;
+        }
+        .btn-secondary:hover {
+            background: #444;
+        }
+    </style>
+</head>
+<body>
+    <h2>Update Downloading...</h2>
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar">0%</div>
+    </div>
+    <div class="status" id="status">Preparing download...</div>
+    <div class="buttons" id="buttons">
+        <button class="btn-primary" onclick="restartNow()">Restart Now</button>
+        <button class="btn-secondary" onclick="restartLater()">Later</button>
+    </div>
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        ipcRenderer.on('download-progress', (event, progress) => {
+            const percent = Math.round(progress.percent);
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressBar').textContent = percent + '%';
+            document.getElementById('status').textContent = 
+                'Downloading: ' + formatBytes(progress.transferred) + ' / ' + formatBytes(progress.total);
+        });
+        
+        ipcRenderer.on('update-downloaded', () => {
+            document.querySelector('h2').textContent = 'Update Ready!';
+            document.getElementById('progressBar').style.width = '100%';
+            document.getElementById('progressBar').textContent = '100%';
+            document.getElementById('status').textContent = 'Update downloaded successfully!';
+            document.getElementById('buttons').classList.add('show');
+        });
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        function restartNow() {
+            ipcRenderer.send('restart-app');
+        }
+        
+        function restartLater() {
+            ipcRenderer.send('close-update-window');
+        }
+    </script>
+</body>
+</html>
