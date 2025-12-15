@@ -6,9 +6,7 @@ let splash;
 let loadingInterval = null;
 let dots = 0;
 
-const dataFolderName = process.env.PORTABLE_EXECUTABLE_DIR
-    ? 'MessengerDesktopData'
-    : 'MessengerDesktop';
+const dataFolderName = process.env.PORTABLE_EXECUTABLE_DIR ? 'MessengerDesktopData' : 'MessengerDesktop';
 
 app.setPath(
     'userData',
@@ -101,7 +99,7 @@ function createWindow() {
     splash.loadFile('splash.html');
 
     mainWindow = new BrowserWindow({
-        width: 1200,
+        width: 1400,
         height: 800,
         show: false,
         resizable: true,
