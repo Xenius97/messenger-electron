@@ -73,6 +73,7 @@ jobs:
           files: |
             dist/Messenger-Setup-v${{ steps.bump_version.outputs.new_version }}.exe
             dist/Messenger-Portable-v${{ steps.bump_version.outputs.new_version }}.exe
+            dist/latest.yml
           draft: false
           prerelease: false
         env:
