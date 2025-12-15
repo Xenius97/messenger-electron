@@ -6,7 +6,9 @@ let splash;
 let loadingInterval = null;
 let dots = 0;
 
-const dataFolderName = process.env.PORTABLE_EXECUTABLE_DIR ? 'MessengerDesktopData' : 'MessengerDesktop';
+const dataFolderName = process.env.PORTABLE_EXECUTABLE_DIR
+    ? 'MessengerDesktopData'
+    : 'MessengerDesktop';
 
 app.setPath(
     'userData',
@@ -24,7 +26,6 @@ function isMessengerUrl(url) {
 
 function startLoadingAnimation() {
     if (loadingInterval) return;
-
     dots = 0;
     loadingInterval = setInterval(() => {
         dots = (dots + 1) % 4;
@@ -42,23 +43,46 @@ function stopLoadingAnimation() {
     mainWindow.setTitle('Messenger Desktop');
 }
 
+function handoffToMain(url, win) {
+    if (win && !win.isDestroyed()) win.destroy();
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.loadURL(url);
+    mainWindow.focus();
+}
+
 function createExternalWindow(url) {
     const win = new BrowserWindow({
         width: 1000,
         height: 800,
         autoHideMenuBar: true,
+        title: 'Messenger Desktop',
+        icon: path.join(__dirname, 'build/app.ico'),
         webPreferences: {
             contextIsolation: true,
-            nodeIntegration: false
+            nodeIntegration: false,
+            partition: 'persist:messenger'
         }
     });
 
-    win.webContents.on('will-navigate', (event, targetUrl) => {
-        if (isMessengerUrl(targetUrl)) {
-            event.preventDefault();
-            win.close();
-            mainWindow.loadURL(targetUrl);
-            mainWindow.focus();
+    const wc = win.webContents;
+
+    wc.on('will-navigate', (e, target) => {
+        if (isMessengerUrl(target)) {
+            e.preventDefault();
+            handoffToMain(target, win);
+        }
+    });
+
+    wc.on('did-redirect-navigation', (e, target) => {
+        if (isMessengerUrl(target)) {
+            e.preventDefault();
+            handoffToMain(target, win);
+        }
+    });
+
+    wc.on('did-navigate', (e, target) => {
+        if (isMessengerUrl(target)) {
+            handoffToMain(target, win);
         }
     });
 
@@ -66,7 +90,6 @@ function createExternalWindow(url) {
 }
 
 function createWindow() {
-
     splash = new BrowserWindow({
         width: 400,
         height: 250,
@@ -111,14 +134,13 @@ function createWindow() {
         if (isMessengerUrl(url)) {
             return { action: 'allow' };
         }
-
         createExternalWindow(url);
         return { action: 'deny' };
     });
 
-    wc.on('will-navigate', (event, url) => {
+    wc.on('will-navigate', (e, url) => {
         if (!isMessengerUrl(url)) {
-            event.preventDefault();
+            e.preventDefault();
             createExternalWindow(url);
         }
     });
