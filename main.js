@@ -2,7 +2,7 @@ const { app, BrowserWindow, Menu, Tray, shell, dialog, Notification } = require(
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 
-const APP_TITLE = 'Messenger Desktop';
+const APP_TITLE = 'Messenger';
 const MESSENGER_URL = 'https://www.messenger.com';
 const LOADING_ANIMATION_INTERVAL = 400;
 const LOADING_DOT_COUNT = 4;
@@ -56,6 +56,7 @@ let tray = null;
 let isQuitting = false;
 let loadingAnimationInterval = null;
 let loadingDotCounter = 0;
+let lastMessageCount = 0;
 
 const dataFolderName = process.env.PORTABLE_EXECUTABLE_DIR ? 'MessengerDesktopData' : 'MessengerDesktop';
 app.setPath('userData', path.join(app.getPath('appData'), dataFolderName));
@@ -182,30 +183,41 @@ function setupLoadingIndicators(webContents) {
     webContents.on('did-frame-finish-load', stopLoadingAnimation);
 }
 
-function setupNotificationHandler(webContents) {
-    webContents.on('did-finish-load', () => {
-        webContents.executeJavaScript(`
-            (function() {
-                const OriginalNotification = window.Notification;
-                window.Notification = function(title, options) {
-                    const notificationData = {
-                        title: title,
-                        body: options?.body || '',
-                        icon: options?.icon || '',
-                        tag: options?.tag || ''
-                    };
-                    
-                    if (window.chrome && window.chrome.webview) {
-                        console.log('Notification:', notificationData);
-                    }
-                    
-                    return new OriginalNotification(title, options);
-                };
+function setupMessageCountMonitor(webContents) {
+    webContents.on('page-title-updated', (event, title) => {
+        // console.log('Page title updated:', title);
+        const match = title.match(/\((\d+)\)/);
+        
+        if (match) {
+            const messageCount = parseInt(match[1], 10);
+            console.log('Message count detected:', messageCount, 'Last count:', lastMessageCount);
+            
+            if (messageCount > lastMessageCount && lastMessageCount >= 0) {
+                const newMessages = messageCount - lastMessageCount;
+                console.log('Sending notification for', newMessages, 'new messages');
                 
-                window.Notification.permission = OriginalNotification.permission;
-                window.Notification.requestPermission = OriginalNotification.requestPermission.bind(OriginalNotification);
-            })();
-        `);
+                if (process.platform === 'win32' && tray && !tray.isDestroyed()) {
+                    tray.displayBalloon({
+                        title: 'Messenger',
+                        content: `${newMessages} new message${newMessages > 1 ? 's' : ''} received`,
+                        icon: path.join(__dirname, 'assets/app.ico')
+                    });
+                }
+            }
+            
+            lastMessageCount = messageCount;
+            
+            if (tray && !tray.isDestroyed()) {
+                app.setBadgeCount(messageCount);
+                tray.setToolTip(messageCount > 0 ? `Messenger (${messageCount} unread)` : 'Messenger');
+            }
+        } else if (title === APP_TITLE) {
+            lastMessageCount = 0;
+            if (tray && !tray.isDestroyed()) {
+                app.setBadgeCount(0);
+                tray.setToolTip('Messenger');
+            }
+        }
     });
 }
 
@@ -243,9 +255,9 @@ function createMainWindow() {
     const webContents = mainWindow.webContents;
 
     setupPermissionHandler(webContents.session);
-    setupNotificationHandler(webContents);
     setupContextMenu(webContents);
     setupLoadingIndicators(webContents);
+    setupMessageCountMonitor(webContents);
     setupNavigationHandlers(webContents);
 
     mainWindow.loadURL(MESSENGER_URL);
@@ -353,7 +365,7 @@ function createTray() {
         }
     ]);
     
-    tray.setToolTip('Messenger Desktop');
+    tray.setToolTip('Messenger');
     tray.setContextMenu(contextMenu);
     
     tray.on('click', () => {
@@ -367,6 +379,12 @@ function createTray() {
                 mainWindow.show();
                 mainWindow.setSkipTaskbar(false);
                 mainWindow.focus();
+                
+                lastMessageCount = 0;
+                if (tray && !tray.isDestroyed()) {
+                    app.setBadgeCount(0);
+                    tray.setToolTip('Messenger');
+                }
             }
         }
     });
@@ -438,11 +456,11 @@ function setupAutoUpdater() {
     });
 }
 
+if (process.platform === 'win32') {
+    app.setAppUserModelId('com.messenger.desktop');
+}
+
 app.whenReady().then(() => {
-    if (process.platform === 'win32') {
-        app.setAppUserModelId('com.messenger.desktop');
-    }
-    
     createWindows();
     setupAutoUpdater();
 });
