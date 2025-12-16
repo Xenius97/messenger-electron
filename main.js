@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, dialog, Notification } = require('electron');
+const { app, BrowserWindow, Menu, Tray, shell, dialog, Notification } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 
@@ -52,6 +52,8 @@ const WEB_PREFERENCES = {
 let mainWindow = null;
 let splashWindow = null;
 let updateProgressWindow = null;
+let tray = null;
+let isQuitting = false;
 let loadingAnimationInterval = null;
 let loadingDotCounter = 0;
 
@@ -254,6 +256,17 @@ function createMainWindow() {
         }
         mainWindow.show();
     });
+
+    mainWindow.on('close', (event) => {
+        if (!isQuitting) {
+            event.preventDefault();
+            mainWindow.hide();
+            
+            if (process.platform === 'win32') {
+                mainWindow.setSkipTaskbar(true);
+            }
+        }
+    });
 }
 
 function setupExternalWindowNavigationHandlers(webContents, window) {
@@ -313,6 +326,50 @@ function createExternalWindow(url) {
 function createWindows() {
     createSplashWindow();
     createMainWindow();
+    createTray();
+}
+
+function createTray() {
+    const trayIconPath = path.join(__dirname, 'assets/app.ico');
+    tray = new Tray(trayIconPath);
+    
+    const contextMenu = Menu.buildFromTemplate([
+        {
+            label: 'Open Messenger',
+            click: () => {
+                if (mainWindow) {
+                    mainWindow.show();
+                    mainWindow.setSkipTaskbar(false);
+                    mainWindow.focus();
+                }
+            }
+        },
+        {
+            label: 'Quit',
+            click: () => {
+                isQuitting = true;
+                app.quit();
+            }
+        }
+    ]);
+    
+    tray.setToolTip('Messenger Desktop');
+    tray.setContextMenu(contextMenu);
+    
+    tray.on('click', () => {
+        if (mainWindow) {
+            if (mainWindow.isVisible()) {
+                mainWindow.hide();
+                if (process.platform === 'win32') {
+                    mainWindow.setSkipTaskbar(true);
+                }
+            } else {
+                mainWindow.show();
+                mainWindow.setSkipTaskbar(false);
+                mainWindow.focus();
+            }
+        }
+    });
 }
 
 function setupAutoUpdater() {
@@ -389,4 +446,13 @@ app.whenReady().then(() => {
     createWindows();
     setupAutoUpdater();
 });
-app.on('window-all-closed', () => app.quit());
+
+app.on('before-quit', () => {
+    isQuitting = true;
+});
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
