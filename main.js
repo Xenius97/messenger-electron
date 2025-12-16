@@ -441,7 +441,6 @@ function createTray() {
 }
 
 function setupAutoUpdater() {
-    
     autoUpdater.autoDownload = false;
     
     setTimeout(() => {
@@ -458,11 +457,7 @@ function setupAutoUpdater() {
         }).then((result) => {
             if (result.response === 1) {
                 createUpdateProgressWindow();
-                if (updateProgressWindow) {
-                    updateProgressWindow.webContents.once('did-finish-load', () => {
-                        autoUpdater.downloadUpdate();
-                    });
-                }
+                autoUpdater.downloadUpdate();
             }
         });
     });
