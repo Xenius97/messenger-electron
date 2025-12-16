@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, dialog, Notification } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 
@@ -179,6 +179,33 @@ function setupLoadingIndicators(webContents) {
     webContents.on('did-frame-finish-load', stopLoadingAnimation);
 }
 
+function setupNotificationHandler(webContents) {
+    webContents.on('did-finish-load', () => {
+        webContents.executeJavaScript(`
+            (function() {
+                const OriginalNotification = window.Notification;
+                window.Notification = function(title, options) {
+                    const notificationData = {
+                        title: title,
+                        body: options?.body || '',
+                        icon: options?.icon || '',
+                        tag: options?.tag || ''
+                    };
+                    
+                    if (window.chrome && window.chrome.webview) {
+                        console.log('Notification:', notificationData);
+                    }
+                    
+                    return new OriginalNotification(title, options);
+                };
+                
+                window.Notification.permission = OriginalNotification.permission;
+                window.Notification.requestPermission = OriginalNotification.requestPermission.bind(OriginalNotification);
+            })();
+        `);
+    });
+}
+
 function setupNavigationHandlers(webContents) {
     webContents.setWindowOpenHandler(({ url }) => {
         if (isMessengerUrl(url)) {
@@ -213,6 +240,7 @@ function createMainWindow() {
     const webContents = mainWindow.webContents;
 
     setupPermissionHandler(webContents.session);
+    setupNotificationHandler(webContents);
     setupContextMenu(webContents);
     setupLoadingIndicators(webContents);
     setupNavigationHandlers(webContents);
@@ -348,6 +376,10 @@ function setupAutoUpdater() {
 }
 
 app.whenReady().then(() => {
+    if (process.platform === 'win32') {
+        app.setAppUserModelId('com.messenger.desktop');
+    }
+    
     createWindows();
     setupAutoUpdater();
 });
