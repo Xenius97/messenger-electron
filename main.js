@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, shell, dialog, Notification } = require('electron');
+const { app, BrowserWindow, Menu, Tray, shell, dialog, Notification, ipcMain, nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 
@@ -208,14 +208,20 @@ function setupMessageCountMonitor(webContents) {
             lastMessageCount = messageCount;
             
             if (tray && !tray.isDestroyed()) {
-                app.setBadgeCount(messageCount);
                 tray.setToolTip(messageCount > 0 ? `Messenger (${messageCount} unread)` : 'Messenger');
+            }
+            
+            if (process.platform === 'win32') {
+                updateTaskbarBadge(messageCount);
             }
         } else if (title === APP_TITLE) {
             lastMessageCount = 0;
             if (tray && !tray.isDestroyed()) {
-                app.setBadgeCount(0);
                 tray.setToolTip('Messenger');
+            }
+            
+            if (process.platform === 'win32') {
+                updateTaskbarBadge(0);
             }
         }
     });
@@ -320,6 +326,38 @@ function setupExternalWindowDownloadHandler(session, window) {
     });
 }
 
+function updateTaskbarBadge(count) {
+    if (process.platform !== 'win32' || !mainWindow || mainWindow.isDestroyed()) {
+        return;
+    }
+    
+    if (count === 0) {
+        mainWindow.setOverlayIcon(null, '');
+        return;
+    }
+    
+    const { createCanvas } = require('canvas');
+    const canvas = createCanvas(64, 64);
+    const ctx = canvas.getContext('2d');
+    
+    ctx.fillStyle = '#FF0000';
+    ctx.beginPath();
+    ctx.arc(32, 32, 32, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const displayCount = count > 99 ? '99+' : count.toString();
+    const fontSize = displayCount.length > 2 ? 32 : 40;
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.fillText(displayCount, 32, 32);
+    
+    const image = nativeImage.createFromDataURL(canvas.toDataURL());
+    mainWindow.setOverlayIcon(image, `${count} unread messages`);
+}
+
 function createExternalWindow(url) {
     const externalWindow = new BrowserWindow({
         ...WINDOW_CONFIG.external,
@@ -353,6 +391,15 @@ function createTray() {
                     mainWindow.show();
                     mainWindow.setSkipTaskbar(false);
                     mainWindow.focus();
+                    
+                    lastMessageCount = 0;
+                    if (tray && !tray.isDestroyed()) {
+                        tray.setToolTip('Messenger');
+                    }
+                    
+                    if (process.platform === 'win32') {
+                        updateTaskbarBadge(0);
+                    }
                 }
             }
         },
@@ -382,8 +429,11 @@ function createTray() {
                 
                 lastMessageCount = 0;
                 if (tray && !tray.isDestroyed()) {
-                    app.setBadgeCount(0);
                     tray.setToolTip('Messenger');
+                }
+                
+                if (process.platform === 'win32') {
+                    updateTaskbarBadge(0);
                 }
             }
         }
@@ -391,7 +441,6 @@ function createTray() {
 }
 
 function setupAutoUpdater() {
-    const { ipcMain } = require('electron');
     
     autoUpdater.autoDownload = false;
     
