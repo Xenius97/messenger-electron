@@ -441,9 +441,6 @@ function createTray() {
 }
 
 function setupAutoUpdater() {
-    
-    autoUpdater.autoDownload = false;
-    
     setTimeout(() => {
         autoUpdater.checkForUpdates();
     }, 4000);
@@ -453,17 +450,10 @@ function setupAutoUpdater() {
             type: 'info',
             title: 'Update Available',
             message: `A new version (${info.version}) is available!`,
-            detail: 'Do you want to download and install the update?',
-            buttons: ['Not Now', 'OK']
-        }).then((result) => {
-            if (result.response === 1) {
-                createUpdateProgressWindow();
-                if (updateProgressWindow) {
-                    updateProgressWindow.webContents.once('did-finish-load', () => {
-                        autoUpdater.downloadUpdate();
-                    });
-                }
-            }
+            detail: 'The update will be downloaded now.',
+            buttons: ['OK']
+        }).then(() => {
+            createUpdateProgressWindow();
         });
     });
 
