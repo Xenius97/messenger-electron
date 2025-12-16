@@ -458,7 +458,11 @@ function setupAutoUpdater() {
         }).then((result) => {
             if (result.response === 1) {
                 createUpdateProgressWindow();
-                autoUpdater.downloadUpdate();
+                if (updateProgressWindow) {
+                    updateProgressWindow.webContents.once('did-finish-load', () => {
+                        autoUpdater.downloadUpdate();
+                    });
+                }
             }
         });
     });
