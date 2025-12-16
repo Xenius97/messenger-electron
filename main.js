@@ -31,6 +31,16 @@ const WINDOW_CONFIG = {
         title: APP_TITLE,
         icon: path.join(__dirname, 'assets/app.ico'),
     },
+    update: {
+        width: 450,
+        height: 200,
+        resizable: false,
+        frame: true,
+        modal: true,
+        title: 'Updating Messenger Desktop',
+        show: false,
+        icon: path.join(__dirname, 'assets/app.ico'),
+    },
 };
 
 const WEB_PREFERENCES = {
@@ -126,17 +136,8 @@ function createUpdateProgressWindow() {
     }
     
     updateProgressWindow = new BrowserWindow({
-        width: 450,
-        height: 200,
-        resizable: false,
-        frame: true,
-        modal: true,
-        parent: mainWindow,
-        show: false,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        }
+        ...WINDOW_CONFIG.update,
+        webPreferences: WEB_PREFERENCES,
     });
     
     updateProgressWindow.setMenu(null);
@@ -317,19 +318,24 @@ function createWindows() {
 function setupAutoUpdater() {
     const { ipcMain } = require('electron');
     
+    autoUpdater.autoDownload = false;
+    
     setTimeout(() => {
-        autoUpdater.checkForUpdatesAndNotify();
-    }, 2000);
+        autoUpdater.checkForUpdates();
+    }, 4000);
     
     autoUpdater.on('update-available', (info) => {
         dialog.showMessageBox(mainWindow, {
             type: 'info',
             title: 'Update Available',
             message: `A new version (${info.version}) is available!`,
-            detail: 'The update will be downloaded now.',
-            buttons: ['OK']
-        }).then(() => {
-            createUpdateProgressWindow();
+            detail: 'Do you want to download and install the update?',
+            buttons: ['Not Now', 'OK']
+        }).then((result) => {
+            if (result.response === 1) {
+                createUpdateProgressWindow();
+                autoUpdater.downloadUpdate();
+            }
         });
     });
 
@@ -383,4 +389,4 @@ app.whenReady().then(() => {
     createWindows();
     setupAutoUpdater();
 });
-app.on('window-all-closed', () => app.quit()); 
+app.on('window-all-closed', () => app.quit());
